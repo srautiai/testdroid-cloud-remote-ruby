@@ -56,10 +56,21 @@ module Testdroid
 					return if !checkConn
 					send_command("DRAG #{startx}, #{starty}, #{endx}, #{endy}, #{steps}, #{duration}");
 				end
+				#Special drag - startXY,sleep,endXY,sleep,end2XY
+				def drag_m(startx,starty,durationDrag,endx,endy, durationStall, end2x,end2y) 
+					return if !checkConn
+					send_command("DRAG_M #{startx}, #{starty}, #{durationDrag}, #{endx}, #{endy}, #{durationDrag}, #{end2x}, #{end2y}");
+				end
 				#Reboot device
 				def reboot
 					return if !checkConn
 					send_command("REBOOT");
+				end
+				#Executes an adb shell command and returns the result
+				def shell_cmd(shell_cmd)
+					return if !checkConn
+					send_command("SHELL #{shell_cmd}");
+					return get_response
 				end
 				#am  start -n command: am start -n com.bitbar.testdroid/.BitbarSampleApplicationActivity
 				def start_activity(activity)
@@ -93,12 +104,13 @@ module Testdroid
 							a_file = File.open(@screenshotFilename, "wb") 
 							a_file.write(msg.body)
 							a_file.close
+							puts "File closed"
 							@response  = @screenshotFilename
 							
 							
 							return
 						end
-				
+						#Parse JSON response - TODO: add rescue
 						@response = JSON.parse( msg.body )
 				
 						return;
@@ -133,7 +145,7 @@ module Testdroid
 				
 				def get_response
 					begin
-					# Don't take longer than 20 seconds to retrieve content
+					# Don't wait longer than 20 seconds to retrieve content
 					Timeout::timeout(20) do
 						while @response.nil?  do
 							sleep 0.3 
@@ -143,7 +155,6 @@ module Testdroid
 						$stderr.puts "Timeout when receiving response" 
 						return nil
 					end
-					
 					lastResponse =  @response.clone
 					@response = nil
 					return lastResponse
@@ -153,10 +164,10 @@ module Testdroid
 end  
 
 if __FILE__ == $0
-
 remote = Testdroid::Cloud::Remote.new('','', 'localhost', 61613)
+
 remote.open
-remote.wait_for_connection('12345','016B732C1900701A')
+remote.wait_for_connection('ABCDE','016B732C1900701A')
 remote.display
 dev_prop = remote.device_properties
 if dev_prop.nil? 
@@ -171,8 +182,19 @@ remote.touch(22,34)
 sleep 5
 remote.drag(22,134, 323,133)
 sleep 5
-remote.drag(240,134, 1,134, 9, 200)
+remote.drag_m(240,134,1000, 1,134, 2000, 10,134 )
 remote.take_screenshot("screenshot12.png")
+puts "Run shell command"
+i_output = remote.shell_cmd("input text abcd\n")
+#puts("Text input output: #{i_output['output']}")
+puts "Run 2nd shell command"
+ls_output = remote.shell_cmd("ls")
+#puts("LS output: #{ls_output['output']}")
+
+dump_output = remote.shell_cmd("dumpsys")
+#puts("LS output: #{dump_output['output']}")
+
+
 remote.close
 puts "End"
 end
