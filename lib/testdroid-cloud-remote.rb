@@ -164,10 +164,10 @@ module Testdroid
 end  
 
 if __FILE__ == $0
-remote = Testdroid::Cloud::Remote.new('','', 'localhost', 61613)
+remote = Testdroid::Cloud::Remote.new('username','password', 'localhost', 61613)
 
 remote.open
-remote.wait_for_connection('ABCDE','016B732C1900701A')
+remote.wait_for_connection('100406','LGOTMS6829b9')
 remote.display
 dev_prop = remote.device_properties
 if dev_prop.nil? 
@@ -186,13 +186,13 @@ remote.drag_m(240,134,1000, 1,134, 2000, 10,134 )
 remote.take_screenshot("screenshot12.png")
 puts "Run shell command"
 i_output = remote.shell_cmd("input text abcd\n")
-#puts("Text input output: #{i_output['output']}")
+puts("Text input output: #{i_output['output']}")
 puts "Run 2nd shell command"
 ls_output = remote.shell_cmd("ls")
-#puts("LS output: #{ls_output['output']}")
+puts("LS output: #{ls_output['output']}")
 
 dump_output = remote.shell_cmd("dumpsys")
-#puts("LS output: #{dump_output['output']}")
+puts("LS output: #{dump_output['output']}")
 
 
 remote.close
