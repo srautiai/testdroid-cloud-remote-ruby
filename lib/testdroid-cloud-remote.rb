@@ -22,28 +22,27 @@ module Testdroid
 				# The Stomp connection hash used by the client.
 				attr_reader :conn_hash 
 				
+				#username, password, url, port
+				#or
+				#stomp connection hash = > see Stomp client init for details
 				def initialize(username, password, url, port)  
-					# Instance variables  
-					@username = username  
-					@password = password  
-					@url = url
-					@port = port
-					
+					if username.is_a?(Hash)
+						@conn_hash = username 
+						first_host = @conn_hash[:hosts][0]
+						@username = first_host[:login]
+						@password = first_host[:passcode]
+						@url = first_host[:host]
+						@port = first_host[:port] || Connection::default_port(first_host[:ssl])
+						@reliable = true 
+					else
+						# Instance variables  
+						@username = username  
+						@password = password  
+						@url = url
+						@port = port
+					end
 				end
-				
-				def initialize(conn_hash) 
-					raise ArgumentError, 'Argument is not hash' unless conn_hash.is_a?(Hash)
-					
-					@conn_hash = conn_hash 
-					first_host = @conn_hash[:hosts][0]
-					@username = first_host[:login]
-					@password = first_host[:passcode]
-					@url = first_host[:host]
-					@port = first_host[:port] || Connection::default_port(first_host[:ssl])
-					@reliable = true 
-					
-				end    
-				
+								
 				#Open connection to remote server
 				def open
 					puts "Connecting #{@url}:#{@port}"
