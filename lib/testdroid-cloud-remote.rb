@@ -6,19 +6,52 @@ require 'json'
 module Testdroid
 
 	module Cloud	
-		class Remote 
-			def initialize(username, password, url, port)  
+		class Remote
+				# The login username used by the client.
+				attr_reader :username 
+				
+				# The login password used by the client.
+				attr_reader :password 
+				
+				# The stomp endpoint used by the client.
+				attr_reader :url 
+				
+				# The stomp port used by the client.
+				attr_reader :port 
+				
+				# The Stomp connection hash used by the client.
+				attr_reader :conn_hash 
+				
+				def initialize(username, password, url, port)  
 					# Instance variables  
 					@username = username  
 					@password = password  
 					@url = url
 					@port = port
 					
-				end  
+				end
+				
+				def initialize(conn_hash) 
+					raise ArgumentError, 'Argument is not hash' unless conn_hash.is_a?(Hash)
+					
+					@conn_hash = conn_hash 
+					first_host = @conn_hash[:hosts][0]
+					@username = first_host[:login]
+					@password = first_host[:passcode]
+					@url = first_host[:host]
+					@port = first_host[:port] || Connection::default_port(first_host[:ssl])
+					@reliable = true 
+					
+				end    
+				
 				#Open connection to remote server
 				def open
 					puts "Connecting #{@url}:#{@port}"
-					@remoteClient = Stomp::Client.new(@username, @password, @url, @port, true)
+					if @conn_hash 
+						@remoteClient = Stomp::Client.new(@conn_hash)
+					else 
+						@remoteClient = Stomp::Client.new(@username, @password, @url, @port, true)
+					end
 				end
 				#End session - free to device for other use
 				def close
@@ -162,39 +195,3 @@ module Testdroid
 		end
 	end
 end  
-
-if __FILE__ == $0
-remote = Testdroid::Cloud::Remote.new('username','password', 'localhost', 61613)
-
-remote.open
-remote.wait_for_connection('100406','LGOTMS6829b9')
-remote.display
-dev_prop = remote.device_properties
-if dev_prop.nil? 
-	remote.close
-	abort "Error receiving"
-	
-end
-puts "X: #{dev_prop['display.height']}"
-puts "Y: #{dev_prop['display.width']}"
-
-remote.touch(22,34)
-sleep 5
-remote.drag(22,134, 323,133)
-sleep 5
-remote.drag_m(240,134,1000, 1,134, 2000, 10,134 )
-remote.take_screenshot("screenshot12.png")
-puts "Run shell command"
-i_output = remote.shell_cmd("input text abcd\n")
-puts("Text input output: #{i_output['output']}")
-puts "Run 2nd shell command"
-ls_output = remote.shell_cmd("ls")
-puts("LS output: #{ls_output['output']}")
-
-dump_output = remote.shell_cmd("dumpsys")
-puts("LS output: #{dump_output['output']}")
-
-
-remote.close
-puts "End"
-end
