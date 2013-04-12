@@ -25,7 +25,7 @@ module Testdroid
 				#username, password, url, port
 				#or
 				#stomp connection hash = > see Stomp client init for details
-				def initialize(username, password, url, port)  
+				def initialize(username, password='', url='localhost', port=61613)  
 					if username.is_a?(Hash)
 						@conn_hash = username 
 						first_host = @conn_hash[:hosts][0]
@@ -128,7 +128,7 @@ module Testdroid
 					@remoteClient.publish(@cmdDestination, monkeyCommand ,{'persistent'=>'false', 'amq-msg-type'=>'text'})
 				end
 				def receiveMsg(msg)
-				
+					
 					if !@cmdDestination.nil?
 						if !msg.headers["content-length"].nil?
 							puts "Saving binary message #{@screenshotFilename}"
@@ -178,13 +178,13 @@ module Testdroid
 				def get_response
 					begin
 					# Don't wait longer than 20 seconds to retrieve content
-					Timeout::timeout(20) do
+					Timeout::timeout(50) do
 						while @response.nil?  do
 							sleep 0.3 
 						end
 					end
 					rescue Timeout::Error
-						$stderr.puts "Timeout when receiving response" 
+						$stderr.puts "#{Time.now} Timeout when receiving response(50SEC)" 
 						return nil
 					end
 					lastResponse =  @response.clone
