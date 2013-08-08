@@ -9,7 +9,7 @@ Gem::Specification.new do |gem|
   gem.email = "sakari.rautiainen@bitbar.com"
   gem.authors = ["Sakari Rautiainen"]
  
-  gem.version       = '0.1.2'
+  gem.version       = '0.1.4'
  
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }

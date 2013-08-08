@@ -1,15 +1,16 @@
 #!/usr/bin/ruby
-gem 'testdroid-cloud', '= 0.1.2'
-gem 'testdroid-cloud-remote', '= 0.1.2'
+gem 'testdroid-cloud', '= 0.1.3'
+gem 'testdroid-cloud-remote', '= 0.1.4'
 require 'testdroid-cloud'
 require 'testdroid-cloud-remote'
+require 'logger'
 #require 'testdroid-cloud-remote'
 
-def test_run(username,password,apk_filename, project_name, device_id)
+def test_run(username,password,apk_filename, project_name, device_id, logger)
 	begin 
 		
 		cloud = Testdroid::Cloud::Client.new(username, password)
-		
+		cloud.logger =  logger
 		#cloud.authorize
 		user =  cloud.get_user
 		if(user.nil?) 
@@ -52,6 +53,7 @@ def test_run(username,password,apk_filename, project_name, device_id)
 		if(device_runs.nil?) 
 			abort("Couldn't find device_runs!!")
 		end
+		
 		return [run.id, device_runs]
 	end
 end
@@ -59,12 +61,14 @@ def d_puts(device, msg)
 	puts Time.now
 	puts "device:#{device} \t #{msg}"
 end
-def control_device(username, password,host, device_run_id, run_id)
+def control_device(username, password,host, device_run_id, run_id, logger )
+	
 	stomp_hash = {
     :hosts => [
       	{:login => username, :passcode => password, :host => host, :port => 61612, :ssl => true},
     	],
-    	:parse_timeout => 150
+    	:parse_timeout => 150,
+    	:logger => logger
   	}
 
 	#remote_conn = Testdroid::Cloud::Remote.new(username,password, host, 61613)
@@ -131,7 +135,10 @@ if ARGV.length == 5
 	apk_filename = ARGV[2]
 	project_name = ARGV[3]
 	device_id = ARGV[4]
-	run_data = test_run(username, password, apk_filename, project_name, device_id)
+	log_file = File.open('/tmp/remote.log', File::WRONLY | File::APPEND | File::CREAT)
+	logger = Logger.new(log_file)
+	run_data = test_run(username, password, apk_filename, project_name, device_id, logger)
+	
 	
 	if(run_data.nil?) 
 		abort("Test didn't start succesfully")
@@ -150,6 +157,7 @@ if ARGV.length == 5
 
 	threads.each { |aThread|  aThread.join }
 	puts "Done"
+	log_file.close
 else
   STDOUT.puts <<-EOF
 Please provide parameters

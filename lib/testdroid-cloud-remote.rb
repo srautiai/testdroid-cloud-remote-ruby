@@ -25,7 +25,7 @@ module Testdroid
 				#username, password, url, port
 				#or
 				#stomp connection hash = > see Stomp client init for details
-				def initialize(username, password='', url='localhost', port=61613)  
+				def initialize(username, password='', url='localhost', port=61613, logger = Logger.new(STDOUT)  )  
 					if username.is_a?(Hash)
 						@conn_hash = username 
 						first_host = @conn_hash[:hosts][0]
@@ -33,19 +33,26 @@ module Testdroid
 						@password = first_host[:passcode]
 						@url = first_host[:host]
 						@port = first_host[:port] || Connection::default_port(first_host[:ssl])
-						@reliable = true 
+						@reliable = true
+						@logger =  @conn_hash[:logger] 
+						if(@logger.nil?) 
+							@logger = Logger.new(STDOUT)
+							@logger.info("Logger is not defined => output to STDOUT")
+						end
+						
 					else
 						# Instance variables  
 						@username = username  
 						@password = password  
 						@url = url
 						@port = port
+						@logger = logger 
 					end
 				end
 								
 				#Open connection to remote server
 				def open
-					puts "Connecting #{@url}:#{@port}"
+					@logger.info( "Connecting #{@url}:#{@port}")
 					if @conn_hash 
 						@remoteClient = Stomp::Client.new(@conn_hash)
 					else 
@@ -60,7 +67,8 @@ module Testdroid
 				end
 				# wait until device is available 
 				def wait_for_connection(build_id, device_id, time_out=0)
-					puts "Waiting for device #{device_id}"
+					@logger.info("Waiting for device #{device_id}")
+					
 					queue_name = "/queue/#{build_id}.REMOTE.#{device_id}"
 					@remoteClient.subscribe(queue_name, { :ack =>"auto" }, &method(:receiveMsg))
 					begin 
@@ -70,13 +78,13 @@ module Testdroid
 							end
 						end
 						rescue Timeout::Error
-						$stderr.puts "Timeout when waiting device to connect" 
+						@logger.error("Timeout when waiting device to connect" )
 						return nil
 					end
 				end  
 				#Show device connection
 				def display  
-					puts "Device(#{@deviceId}) is connected: #{@deviceConnected} reply queue: #{@cmdDestination} "  
+					@logger.info( "Device(#{@deviceId}) is connected: #{@deviceConnected} reply queue: #{@cmdDestination} " ) 
 				end  
 				#Touch device screen on coordinates
 				def touch(x,y) 
@@ -131,12 +139,12 @@ module Testdroid
 					
 					if !@cmdDestination.nil?
 						if !msg.headers["content-length"].nil?
-							puts "Saving binary message #{@screenshotFilename}"
+							@logger.info( "Saving binary message #{@screenshotFilename}")
 							
 							a_file = File.open(@screenshotFilename, "wb") 
 							a_file.write(msg.body)
 							a_file.close
-							puts "File closed"
+							@logger.info("file closed")
 							@response  = @screenshotFilename
 							
 							
@@ -152,7 +160,7 @@ module Testdroid
 						@deviceConnected = true
 						match1 = msg.body.match /^DEVICE_CONNECTED\s(\w*)/
 						@deviceId = match1[1]
-						puts "device connected #{match1[1]}"
+						@logger.info("device connected #{match1[1]}")
 						@cmdDestination = msg.headers["reply-to"]
 						return
 					end 
@@ -160,15 +168,16 @@ module Testdroid
 				
 				def checkConn
 					if @deviceId.nil? 
-						$stderr.puts "Not connected to device" 
+						@logger.error("device connected #{match1[1]}")
 						return false
 					end
 					if @cmdDestination.nil? 
-						$stderr.puts "Not connected to device - no reply destination" 
+						@logger.error("Not connected to device - no reply destination")
 						return false
 					end
 					if @remoteClient.closed? 
-						$stderr.puts "Client is not connected" 
+						@logger.error("Client is not connected" )
+
 						return false
 					end
 					return true
@@ -184,7 +193,9 @@ module Testdroid
 						end
 					end
 					rescue Timeout::Error
-						$stderr.puts "#{Time.now} Timeout when receiving response(50SEC)" 
+
+						@logger.error("#{Time.now} Timeout when receiving response(50SEC)")
+
 						return nil
 					end
 					lastResponse =  @response.clone
