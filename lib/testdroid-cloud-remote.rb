@@ -78,7 +78,7 @@ module Testdroid
 							end
 						end
 						rescue Timeout::Error
-						@logger.error("Timeout when waiting device to connect" )
+							@logger.error("Timeout when waiting device to connect" )
 						return nil
 					end
 				end  
@@ -162,6 +162,15 @@ module Testdroid
 						@deviceId = match1[1]
 						@logger.info("device connected #{match1[1]}")
 						@cmdDestination = msg.headers["reply-to"]
+						return
+					end
+					if msg.body =~ /^CONNECTION_FAILED\s\w*/
+								
+						@deviceConnected = false
+						match1 = msg.body.match /^CONNECTION_FAILED\s(\w*)/
+						@deviceId = match1[1]
+						@logger.error("device connection failed#{match1[1]}")
+						@cmdDestination = "none"
 						return
 					end 
 				end
