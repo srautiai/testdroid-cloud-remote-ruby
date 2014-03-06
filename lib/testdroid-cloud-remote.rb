@@ -74,12 +74,14 @@ module Testdroid
 					begin 
 						Timeout::timeout(time_out) do
 							while @cmdDestination.nil?  do
-							sleep 0.3 
+								sleep 0.3 
 							end
+                            if !@deviceConnected
+                                @logger.error("Connection failed" )
+                                raise "Connection failed" 
+                            end
 						end
-						rescue Timeout::Error
-							@logger.error("Timeout when waiting device to connect" )
-						return nil
+						
 					end
 				end  
 				#Show device connection
@@ -177,17 +179,14 @@ module Testdroid
 				
 				def checkConn
 					if @deviceId.nil? 
-						@logger.error("device connected #{match1[1]}")
-						return false
+						raise "Device id is not set"
 					end
 					if @cmdDestination.nil? 
-						@logger.error("Not connected to device - no reply destination")
+						raise "Not connected to device - no reply destination"
 						return false
 					end
 					if @remoteClient.closed? 
-						@logger.error("Client is not connected" )
-
-						return false
+						raise "Client is not connected" 
 					end
 					return true
 				end
